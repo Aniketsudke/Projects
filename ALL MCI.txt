@@ -1,0 +1,168 @@
+Serial Communication
+
+#include<xc.h>
+void main()
+{
+    TXSTA = 0x20;
+    SPBRG = 15;
+    //TXSTAbits.TXEN = 1;
+    RCSTAbits.SPEN = 1;
+    
+        TXREG = 'A';
+        while(PIR1bits.TXIF ==0);
+        TXREG = 'N';
+        while(PIR1bits.TXIF ==0);
+    
+    while(1);
+}
+
+
+PWM 
+
+#include<xc.h>
+void main()
+{
+    CCP1CON=0;              //clear CCP1CON register
+    PR2=155;                // PR2=(Fosc/(Fpwm*4*N))-1
+    CCPR1L=94;              // CCPR1L=PR2*desired duty cycle percent
+    // CCPR1L=94;           //for 61% duty cycle
+    // CCPR1L=155;          //for 100% duty cycle
+    // CCPR1L=116;          //for 75% duty cycle
+    // CCPR1L=77;           //for 50% duty cycle
+    // CCPR1L=38;           // for 25% duty cycle
+    
+    TRISCbits.TRISC2=0;    // made PWM pin an output pin
+    T2CON=0x02;            // timer 2
+    CCP1CON=0x2C;          // PWM mode
+    TMR2=0;                // clear timer 2
+    T2CONbits.TMR2ON=1;    // turn on timer 2
+    while(1)
+    {
+        PIR1bits.TMR2IF=0;          // clear timer2 flag
+        while(PIR1bits.TMR2IF==0);  // wait for end of period
+    }
+    
+}
+
+ADC
+
+#include <xc.h>
+void delay(int);
+void main()
+{
+    TRISE=0;                //Output
+    TRISD=0;                //Output
+    TRISAbits.TRISA0=1;     //Input
+    
+    ADCON0=0x01;            //Fosc/64, channel 0
+    ADCON1=0x0E;            //Right justified
+    ADCON2=0xA4; 
+    
+    while(1)
+    {
+        delay(1);
+        ADCON0bits.GO=1;         //SoC
+        while(ADCON0bits.GO==1); //wait for EoC
+        
+        PORTD=ADRESL;            //8 Bits
+        PORTE=ADRESH;            //2 Bits
+        delay(250);
+    }
+}
+void delay(int ms)
+{
+    int i,j;
+    for(i=0;i<ms;i++)
+        for(j=0;j<=255;j++);
+}
+
+
+LCD
+
+#define RS PORTCbits.RC0
+#define RW PORTCbits.RC1
+#define EN PORTCbits.RC2
+void lcd_cmd(unsigned char);
+void lcd_data(unsiged char);
+void delay(int);
+void main()
+{
+ TRISC=0x00;
+ TRISD=0x00;
+ EN=0;
+ lcd_cmd(0x38);
+ delay(250);
+ lcd_cmd(0x0E);
+ delay(250);
+ lcd_cmd(0x01);
+ delay(250);
+ lcd_cmd(0x84); // position 1st line middle position
+ delay(250);
+ lcd_data('M');
+ delay(25);
+ lcd_data('I');
+ delay(25);
+ lcd_data('T');
+ delay(25);
+ lcd_data('A');
+ delay(25);
+ lcd_data('O');
+ delay(25);
+ lcd_data('E');
+ delay(25);
+ while(1);
+}
+void lcd_data(unsigned char data)
+{
+ PORTD=data;
+ RS=1;
+ RW=0;
+ EN=1;
+ delay(1);
+ EN=0;
+ }
+void lcd_cmd(unsigned char data)
+{
+ PORTD=data;
+ RS=0;
+ RW=0;
+ EN=1;
+ delay(1);
+ EN=0;
+ }
+void delay(int ms)
+{
+int i,j;
+for(i=0;i<=ms;i++)
+for(j=0;j<=135;j++);
+}
+
+
+Time
+
+void delay()
+{
+T0CON=0x01;
+TMR0L=0x00;
+TMR0H=0x00;
+T0CONbits.TMR0ON=1;
+
+while(INTCONbits.TMR0IF==0);
+T0CONbits.TMR0ON=0;
+INTCONbits.TMR0IF=0;
+}
+
+void main()
+{
+int i, j;
+
+TRISD=0x00;
+
+while(1)
+{
+PORTD=0xFF;
+delay();
+PORTD=0x00;
+delay();
+}
+}
